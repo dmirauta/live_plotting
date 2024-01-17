@@ -1,0 +1,18 @@
+// x, y are to be functions parameterising a curve by z in [0, 1] 
+// t will also vary in [0, 1] according to time
+
+fn r(z,t) {
+	sin(th(z,t)*3.0 - 3.14*4.0*t)
+}
+
+fn th(z,t) {
+	2*3.14*z
+}
+
+fn x(z,t) {
+	r(z,t)*sin(th(z,t))
+}
+
+fn y(z,t) {
+	r(z,t)*cos(th(z,t))
+}
