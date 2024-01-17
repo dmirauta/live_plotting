@@ -8,7 +8,7 @@
     <title>Live plot</title>
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    <script type="module">import init from '/egui_rhai_live_plot-b54536c22f2361d4.js';init('/egui_rhai_live_plot-b54536c22f2361d4_bg.wasm');</script>
+    <script type="module">import init from '/egui_rhai_live_plot-82f2f1bdc59c7fe1.js';init('/egui_rhai_live_plot-82f2f1bdc59c7fe1_bg.wasm');</script>
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
     <base href="/">
 
@@ -112,8 +112,8 @@
       }
     </style>
   
-<link rel="preload" href="/egui_rhai_live_plot-b54536c22f2361d4_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
-<link rel="modulepreload" href="/egui_rhai_live_plot-b54536c22f2361d4.js"></head>
+<link rel="preload" href="/egui_rhai_live_plot-82f2f1bdc59c7fe1_bg.wasm" as="fetch" type="application/wasm" crossorigin="">
+<link rel="modulepreload" href="/egui_rhai_live_plot-82f2f1bdc59c7fe1.js"></head>
 
   <body>
     <!-- The WASM code will resize the canvas dynamically -->
@@ -134,31 +134,4 @@
 
 
 
-<script>(function () {
-    var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    var url = protocol + '//' + window.location.host + '/_trunk/ws';
-    var poll_interval = 5000;
-    var reload_upon_connect = () => {
-        window.setTimeout(
-            () => {
-                // when we successfully reconnect, we'll force a
-                // reload (since we presumably lost connection to
-                // trunk due to it being killed, so it will have
-                // rebuilt on restart)
-                var ws = new WebSocket(url);
-                ws.onopen = () => window.location.reload();
-                ws.onclose = reload_upon_connect;
-            },
-            poll_interval);
-    };
-
-    var ws = new WebSocket(url);
-    ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.reload) {
-            window.location.reload();
-        }
-    };
-    ws.onclose = reload_upon_connect;
-})()
-</script></body></html><!-- Powered by egui: https://github.com/emilk/egui/ -->
+</body></html><!-- Powered by egui: https://github.com/emilk/egui/ -->
