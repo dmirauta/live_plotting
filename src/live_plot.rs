@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use egui::{vec2, CentralPanel, Slider};
+use egui::{vec2, CentralPanel, ScrollArea, Slider, Vec2b};
 use egui_extras::syntax_highlighting::{highlight, CodeTheme};
 use egui_inspect::EguiInspect;
 use egui_plot::{Line, Plot};
@@ -78,7 +78,12 @@ struct FuncPlotter {
 
 impl EguiInspect for FuncPlotter {
     fn inspect(&self, label: &str, ui: &mut egui::Ui) {
-        Plot::new(label).show(ui, |pui| pui.line(Line::new(self.xy.clone())));
+        Plot::new(label)
+            .view_aspect(1.0)
+            .data_aspect(1.0)
+            .min_size(vec2(200.0, 200.0))
+            .auto_bounds(Vec2b::FALSE)
+            .show(ui, |pui| pui.line(Line::new(self.xy.clone())));
     }
 
     fn inspect_mut(&mut self, label: &str, ui: &mut egui::Ui) {
@@ -90,6 +95,7 @@ struct Params {
     n_points: usize,
     t: f64,
     advance: bool,
+    changed: bool,
 }
 
 static INITIAL_N_POINTS: usize = 200;
@@ -99,7 +105,8 @@ impl Default for Params {
         Self {
             n_points: INITIAL_N_POINTS,
             t: Default::default(),
-            advance: Default::default(),
+            advance: false,
+            changed: false,
         }
     }
 }
@@ -118,15 +125,17 @@ impl EguiInspect for Params {
         if delta > 0.0 {
             self.t = delta;
         }
-        ui.horizontal(|ui| {
+        ui.horizontal_wrapped(|ui| {
             ui.label("n points");
-            ui.add(Slider::new(&mut self.n_points, 10..=1000).logarithmic(true));
+            let resp = ui.add(Slider::new(&mut self.n_points, 10..=1000).logarithmic(true));
+            self.changed = self.changed || resp.changed();
             ui.label("  time");
-            ui.add(
+            let resp = ui.add(
                 Slider::new(&mut self.t, 0.0..=1.0)
                     .min_decimals(2)
                     .max_decimals(2),
             );
+            self.changed = self.changed || resp.changed();
             ui.checkbox(&mut self.advance, "advance");
         });
     }
@@ -201,7 +210,7 @@ impl LivePlot {
             (z, self.params.t),
         )
     }
-    fn try_run(&mut self) -> Result<(), Box<dyn Error>> {
+    fn update_curve(&mut self) -> Result<(), Box<dyn Error>> {
         // test that functions are appropriately defined
         let _rx = self.try_apply_x(0.5)?;
         let _ry = self.try_apply_y(0.5)?;
@@ -227,30 +236,32 @@ impl LivePlot {
 impl eframe::App for LivePlot {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         CentralPanel::default().show(ctx, |ui| {
-            if self.params.n_points != self.zv.len() {
-                self.zv = Array1::linspace(0.0, 1.0, self.params.n_points);
-            }
-
-            if self.params.advance {
-                self.try_run_and_report(Self::try_run);
-            }
-
-            if self.rhai_ctx.parsed_code != self.editor.code {
-                match self.rhai_ctx.engine.compile(self.editor.code.as_str()) {
-                    Ok(ast) => {
-                        self.rhai_ctx.ast = ast;
-                        self.rhai_ctx.rhai_feedback = "No issues.".to_string();
-                        if !self.params.advance {
-                            self.try_run_and_report(Self::try_run);
-                        }
-                    }
-                    Err(e) => self.rhai_ctx.rhai_feedback = format!("Parsing error: {e:?}"),
+            ScrollArea::both().show(ui, |ui| {
+                if self.params.n_points != self.zv.len() {
+                    self.zv = Array1::linspace(0.0, 1.0, self.params.n_points);
                 }
-                self.rhai_ctx.parsed_code = self.editor.code.clone();
-            }
 
-            self.rhai_ctx.rhai_feedback.inspect("rhai feedback", ui);
-            self.inspect_mut("", ui);
+                if self.rhai_ctx.parsed_code != self.editor.code {
+                    match self.rhai_ctx.engine.compile(self.editor.code.as_str()) {
+                        Ok(ast) => {
+                            self.rhai_ctx.ast = ast;
+                            self.rhai_ctx.rhai_feedback = "No issues.".to_string();
+                            if !self.params.advance {
+                                self.try_run_and_report(Self::update_curve);
+                            }
+                        }
+                        Err(e) => self.rhai_ctx.rhai_feedback = format!("Parsing error: {e:?}"),
+                    }
+                    self.rhai_ctx.parsed_code = self.editor.code.clone();
+                }
+
+                if self.params.advance || self.params.changed {
+                    self.try_run_and_report(Self::update_curve);
+                }
+
+                self.rhai_ctx.rhai_feedback.inspect("rhai feedback", ui);
+                self.inspect_mut("", ui);
+            });
         });
     }
 }

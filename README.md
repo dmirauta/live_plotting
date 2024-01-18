@@ -1,3 +1,3 @@
 # Live plotting with Egui/Rhai
 
-[Demo](https://dmirauta.github.io/live_plotting/)
+Wasm [demo link](https://dmirauta.github.io/live_plotting/).
