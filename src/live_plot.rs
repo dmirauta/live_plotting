@@ -82,6 +82,7 @@ impl EguiInspect for FuncPlotter {
             .view_aspect(1.0)
             .data_aspect(1.0)
             .min_size(vec2(200.0, 200.0))
+            .height(ui.available_height())
             .auto_bounds(Vec2b::FALSE)
             .show(ui, |pui| pui.line(Line::new(self.xy.clone())));
     }
@@ -94,7 +95,7 @@ impl EguiInspect for FuncPlotter {
 struct Params {
     n_points: usize,
     t: f64,
-    advance: bool,
+    play: bool,
     changed: bool,
 }
 
@@ -105,7 +106,7 @@ impl Default for Params {
         Self {
             n_points: INITIAL_N_POINTS,
             t: Default::default(),
-            advance: false,
+            play: false,
             changed: false,
         }
     }
@@ -118,7 +119,7 @@ impl EguiInspect for Params {
 
     fn inspect_mut(&mut self, _label: &str, ui: &mut egui::Ui) {
         ui.ctx().request_repaint();
-        if self.advance {
+        if self.play {
             self.t += ui.input(|i| i.stable_dt as f64) / 4.0;
         }
         let delta = self.t - 1.0;
@@ -136,7 +137,7 @@ impl EguiInspect for Params {
                     .max_decimals(2),
             );
             self.changed = self.changed || resp.changed();
-            ui.checkbox(&mut self.advance, "advance");
+            ui.checkbox(&mut self.play, "play");
         });
     }
 }
@@ -246,7 +247,7 @@ impl eframe::App for LivePlot {
                         Ok(ast) => {
                             self.rhai_ctx.ast = ast;
                             self.rhai_ctx.rhai_feedback = "No issues.".to_string();
-                            if !self.params.advance {
+                            if !self.params.play {
                                 self.try_run_and_report(Self::update_curve);
                             }
                         }
@@ -255,7 +256,7 @@ impl eframe::App for LivePlot {
                     self.rhai_ctx.parsed_code = self.editor.code.clone();
                 }
 
-                if self.params.advance || self.params.changed {
+                if self.params.play || self.params.changed {
                     self.try_run_and_report(Self::update_curve);
                 }
 
